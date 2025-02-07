@@ -17,5 +17,9 @@ Hook up to Github ---> done, no idea why that is always such a challenge
 
 
 
+### Virtual Env stuff 
+Code to create virtual env (Run this line)
+python -m venv name_of_env
+
 Code for starting a virtual enviroment (Run this line):
 simPy_env\Scripts\activate
