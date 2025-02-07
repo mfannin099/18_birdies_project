@@ -13,7 +13,7 @@ SimPy
     Make virtual env and use for SimPy
     Create some sort of simulation for golf scores...?.... Or maybe simulate a round of 18 holes?
 
-Hook up to Github
+Hook up to Github ---> done, no idea why that is always such a challenge
 
 
 
