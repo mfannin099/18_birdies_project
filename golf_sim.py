@@ -1,9 +1,9 @@
 import simpy
 import random
 import pandas as pd 
-from utils import design_golf_course
-from utils import play_round
-from utils import calculate_shot_distance
+from utils import design_golf_course ##Function
+from utils import play_round ## Function
+from utils import calculate_shot_distance ## Function
 
 handicap = "low" ##acceptable values: high, mid, low
 
