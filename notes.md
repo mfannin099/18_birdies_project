@@ -17,3 +17,5 @@ Hook up to Github ---> done, no idea why that is always such a challenge
 
 
 
+Code for starting a virtual enviroment (Run this line):
+simPy_env\Scripts\activate

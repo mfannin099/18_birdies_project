@@ -74,12 +74,28 @@ def design_golf_course(holes):
 
     return distances_l, par_l
 
-def play_round(env,yardage, par):
+
+def calculate_shot_distance(handicap):
+
+    # Define variability multipliers based on handicap
+    if handicap == "low":  # Low handicap
+        variability_range =[0.9, 1.2]  # Less variability
+    elif handicap == "mid":  # Mid handicap
+        variability_range =[0.75, 1.1]  # Moderate variability
+    else:
+        variability_range = [0.6, 1.0]  # More variability
+
+    return variability_range
+
+
+def play_round(env, shot_range, yardage, par, sim_data):
     total_strokes = 0
+    total_par = 0
 
     ## Iteration over a hole
     for i, (hole_yardage, hole_par) in enumerate(zip(yardage, par), start=1):
         strokes = 0
+        total_par = total_par + hole_par
         distance_remaining = hole_yardage
         print(f"Time {env.now:.2f}: Starting hole {i} (Yardage: {hole_yardage}, Par: {hole_par})")
 
@@ -90,12 +106,13 @@ def play_round(env,yardage, par):
 
             # Simulate shot distance. Here we assume the "average" shot might be roughly
             avg_shot = hole_yardage / hole_par
-            shot_distance = random.uniform(0.8 * avg_shot, 1.2 * avg_shot) ## maybe pass these values in...? based on skill 
+            shot_distance = random.uniform(shot_range[0] * avg_shot, shot_range[1] * avg_shot)
             distance_remaining = max(0, distance_remaining - shot_distance)
             print(f"Time {env.now:.2f}: Hole {i}, Stroke {strokes}: shot {shot_distance:.2f} yards, remaining {distance_remaining:.2f} yards")
 
         total_strokes += strokes
         print(f"Time {env.now:.2f}: Finished hole {i} in {strokes} strokes\n")
+        sim_data.append((env.now, hole_yardage, hole_par, strokes))
 
-    print(f"Round completed at time {env.now:.2f} with total strokes: {total_strokes}")
+    print(f"Round completed at time {env.now:.2f} with total strokes: {total_strokes} with par: {total_par}")
         
