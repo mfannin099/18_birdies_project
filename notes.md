@@ -15,6 +15,8 @@ SimPy
 
 Hook up to Github ---> done, no idea why that is always such a challenge
 
+Create Classes for Course and player.... also make code ready for a loop
+
 
 
 ### Virtual Env stuff 
