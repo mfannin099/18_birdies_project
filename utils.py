@@ -64,15 +64,15 @@ class Golfer:
         self.player_handicap = player_handicap
 
 class Course:
-    def __init__(self, name, num_holes):
+    def __init__(self, course_name, num_holes):
         """Initialize a golf course with a name and number of holes."""
-        self.name = name
+        self.course_name = course_name
         self.num_holes = num_holes
-        self.distances, self.pars = self.design_golf_course()  # Automatically generate course design
+        self.yardages, self.pars = self.design_golf_course()  # Automatically generate course design
 
     def design_golf_course(self):
         """Generate distances and par values for each hole."""
-        distances_l = [random.randint(85, 536) for _ in range(self.num_holes)]
+        distances_l = [random.randint(85, 543) for _ in range(self.num_holes)]
 
         par_l = []
         for distance in distances_l:
@@ -87,10 +87,10 @@ class Course:
 
     def display_course_info(self):
         """Prints course details including name, holes, distances, and par values."""
-        print(f"Course Name: {self.name}")
+        print(f"Course Name: {self.course_name}")
         print(f"Number of Holes: {self.num_holes}")
         for i in range(self.num_holes):
-            print(f"Hole {i+1}: Distance {self.distances[i]} yards, Par {self.pars[i]}")
+            print(f"Hole {i+1}: Distance {self.yardages[i]} yards, Par {self.pars[i]}")
 
 
 def calculate_shot_distance(handicap):
@@ -106,31 +106,43 @@ def calculate_shot_distance(handicap):
     return variability_range
 
 
-def play_round(env, shot_range, yardage, par, sim_data):
-    total_strokes = 0
-    total_par = 0
+def play_round(env, shot_range, course, sim_data):
+    """
+    Simulate playing a round of golf on a given course.
 
-    ## Iteration over a hole
-    for i, (hole_yardage, hole_par) in enumerate(zip(yardage, par), start=1):
+    Parameters:
+    - env: Simulation environment (e.g., SimPy environment)
+    - shot_range: Tuple representing the min/max shot effectiveness (e.g., (0.7, 1.2))
+    - course: Instance of the Course class
+    - sim_data: List to store simulation data
+    """
+    total_strokes = 0
+    total_par = sum(course.pars)  # Total par for the course
+
+    # Iterate through each hole using course yardages and pars
+    for i, (hole_yardage, hole_par) in enumerate(zip(course.yardages, course.pars), start=1):
         strokes = 0
-        total_par = total_par + hole_par
         distance_remaining = hole_yardage
+
         print(f"Time {env.now:.2f}: Starting hole {i} (Yardage: {hole_yardage}, Par: {hole_par})")
 
         while distance_remaining > 0:
-            strokes = strokes +1
-            shot_time = random.uniform(1,3)
+            strokes += 1
+            shot_time = random.uniform(1, 3)  # Random time per shot
             yield env.timeout(shot_time)
 
-            # Simulate shot distance. Here we assume the "average" shot might be roughly
+            # Simulate shot distance. Average shot based on hole distance and par.
             avg_shot = hole_yardage / hole_par
             shot_distance = random.uniform(shot_range[0] * avg_shot, shot_range[1] * avg_shot)
             distance_remaining = max(0, distance_remaining - shot_distance)
-            print(f"Time {env.now:.2f}: Hole {i}, Stroke {strokes}: shot {shot_distance:.2f} yards, remaining {distance_remaining:.2f} yards")
+
+            #print(f"Time {env.now:.2f}: Hole {i}, Stroke {strokes}: shot {shot_distance:.2f} yards, remaining {distance_remaining:.2f} yards")
 
         total_strokes += strokes
         print(f"Time {env.now:.2f}: Finished hole {i} in {strokes} strokes\n")
         sim_data.append((env.now, hole_yardage, hole_par, strokes))
 
-    print(f"Round completed at time {env.now:.2f} with total strokes: {total_strokes} with par: {total_par}")
+    print(f"Round completed at time {env.now:.2f} with total strokes: {total_strokes} (Par: {total_par})")
+
+    
         
