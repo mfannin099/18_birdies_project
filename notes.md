@@ -15,7 +15,9 @@ SimPy
 
 Hook up to Github ---> done, no idea why that is always such a challenge
 
-Create Classes for Course and player.... also make code ready for a loop
+Create Classes for Course and player.... also make code ready for a loop ----> done
+
+Run Simulation 10,000k times....? save to csv, create classifier for the type of golfer
 
 
 

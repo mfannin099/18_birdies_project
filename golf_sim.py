@@ -7,7 +7,7 @@ from utils import calculate_shot_distance ## Function
 from utils import Golfer
 from utils import Course
 
-repeat_courses = 2
+repeat_courses = 100
 
 ##Creating database to store the scores
 column_names_database = ['player_name','player_handicap', 'course_name', 'hole_timestamp', 'hole_yardage', 'hole_par', 'player_score', 'hole_number']
@@ -24,13 +24,15 @@ golfers = [
 
 courses = [
     Course("Local Course", 18),
-    Course("Local Course 2", 18),
-    Course("Pebble Beach", 18),
-    Course("Pebble Beach 2", 18),
-
+    Course("Local Links", 18),
+    Course("Cheap Course Farms", 18),
+    Course("Expensive Fairways", 18),
+    Course("Beach Town Golf Club", 18),
+    Course("Pebble Hills", 18),
+    Course("Oscar Golf Resort", 18),
 ]
 
-final_courses = courses * 2
+final_courses = courses * repeat_courses
 
 for player in golfers:
     ##Distnace of shots based on handicap
@@ -56,7 +58,6 @@ for player in golfers:
         sim_database = pd.concat([sim_database, sim_to_append]) #ignore_index=True)
 
 print(sim_database.shape)
-print(sim_database)
 
 print("------------------")
 print("------------------")

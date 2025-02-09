@@ -99,9 +99,9 @@ def calculate_shot_distance(handicap):
     if handicap == "low":  # Low handicap
         variability_range =[0.9, 1.2]  # Less variability
     elif handicap == "mid":  # Mid handicap
-        variability_range =[0.75, 1.1]  # Moderate variability
+        variability_range =[0.8, 1.1]  # Moderate variability
     else:
-        variability_range = [0.6, 1.0]  # More variability
+        variability_range = [0.6, 1.03]  # More variability
 
     return variability_range
 
@@ -124,7 +124,7 @@ def play_round(env, shot_range, course, sim_data):
         strokes = 0
         distance_remaining = hole_yardage
 
-        print(f"Time {env.now:.2f}: Starting hole {i} (Yardage: {hole_yardage}, Par: {hole_par})")
+        #print(f"Time {env.now:.2f}: Starting hole {i} (Yardage: {hole_yardage}, Par: {hole_par})")
 
         while distance_remaining > 0:
             strokes += 1
