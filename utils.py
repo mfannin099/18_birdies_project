@@ -57,6 +57,12 @@ def display_metrics(slope,intercept,y,y_pred):
 
 
 ##BELOW IS FOR golf_sim.py
+
+class Golfer:
+    def __init__(self,player_name,player_handicap):
+        self.player_name = player_name
+        self.player_handicap = player_handicap
+
 def design_golf_course(holes):
 
     # Generate a list of random integers between 85 and 536 (inclusive)
