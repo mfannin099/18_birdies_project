@@ -7,11 +7,7 @@ from utils import calculate_shot_distance ## Function
 from utils import Golfer
 from utils import Course
 
-golfer1 = Golfer("Bad_player", "high") ##acceptable values: high, mid, low
-##Distnace of shots based on handicap
-shot_range = calculate_shot_distance(golfer1.player_handicap)
-course1 = Course("Augusta National", 18)
-#course1.display_course_info()
+repeat_courses = 2
 
 ##Creating database to store the scores
 column_names_database = ['player_name','player_handicap', 'course_name', 'hole_timestamp', 'hole_yardage', 'hole_par', 'player_score', 'hole_number']
@@ -19,21 +15,52 @@ column_names_to_append = ['hole_timestamp', 'hole_yardage', 'hole_par', 'player_
 sim_database = pd.DataFrame(columns=column_names_database)
 sim_data = []
 
-##Simulate data and create ML Classifer...? 
-env = simpy.Environment()
-env.process(play_round(env, shot_range, course1 ,sim_data)) ## Function is to run the simulation 
-env.run()
+##acceptable values: high, mid, low
+golfers = [
+    Golfer("Bad_player", "high"),
+    Golfer("Average_player", "mid"),
+    Golfer("Pro_player", "low")
+]
 
-##Adding in columns that are expected in database
-sim_to_append = pd.DataFrame(sim_data, columns=column_names_to_append)
-sim_to_append['hole_number'] = sim_to_append.index + 1
-sim_to_append['player_name'] = golfer1.player_name
-sim_to_append['player_handicap'] = golfer1.player_handicap  
-sim_to_append['course_name'] = course1.course_name  
+courses = [
+    Course("Local Course", 18),
+    Course("Local Course 2", 18),
+    Course("Pebble Beach", 18),
+    Course("Pebble Beach 2", 18),
+
+]
+
+final_courses = courses * 2
+
+for player in golfers:
+    ##Distnace of shots based on handicap
+    shot_range = calculate_shot_distance(player.player_handicap)
+
+    for c in final_courses:
+        sim_data = []
+
+        ##Simulate data and create ML Classifer...? 
+        env = simpy.Environment()
+        env.process(play_round(env, shot_range, c ,sim_data)) ## Function is to run the simulation 
+        env.run()
+
+        ##Adding in columns that are expected in database
+        sim_to_append = pd.DataFrame(sim_data, columns=column_names_to_append)
+        sim_to_append['hole_number'] = sim_to_append.index + 1
+        sim_to_append['player_name'] = player.player_name
+        sim_to_append['player_handicap'] = player.player_handicap  
+        sim_to_append['course_name'] = c.course_name  
 
 
-# Append df_to_append to the original DataFrame df
-sim_database = pd.concat([sim_database, sim_to_append]) #ignore_index=True)
+        # Append df_to_append to the original DataFrame df
+        sim_database = pd.concat([sim_database, sim_to_append]) #ignore_index=True)
 
 print(sim_database.shape)
 print(sim_database)
+
+print("------------------")
+print("------------------")
+print("------------------")
+score_sums = sim_database.groupby(['player_name', 'course_name'])['player_score'].sum()
+score_avg = score_sums / repeat_courses
+print(score_avg)
