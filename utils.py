@@ -63,22 +63,34 @@ class Golfer:
         self.player_name = player_name
         self.player_handicap = player_handicap
 
-def design_golf_course(holes):
+class Course:
+    def __init__(self, name, num_holes):
+        """Initialize a golf course with a name and number of holes."""
+        self.name = name
+        self.num_holes = num_holes
+        self.distances, self.pars = self.design_golf_course()  # Automatically generate course design
 
-    # Generate a list of random integers between 85 and 536 (inclusive)
-    distances_l = [random.randint(85, 536) for i in range(holes)]
+    def design_golf_course(self):
+        """Generate distances and par values for each hole."""
+        distances_l = [random.randint(85, 536) for _ in range(self.num_holes)]
 
-    ## With distances create values for par for the hole
-    par_l = []
-    for i in distances_l:
-        if i < 221:
-            par_l.append(3)
-        elif i >= 221 and i < 467:
-            par_l.append(4)
-        else:
-            par_l.append(5)
+        par_l = []
+        for distance in distances_l:
+            if distance < 221:
+                par_l.append(3)
+            elif 221 <= distance < 467:
+                par_l.append(4)
+            else:
+                par_l.append(5)
 
-    return distances_l, par_l
+        return distances_l, par_l
+
+    def display_course_info(self):
+        """Prints course details including name, holes, distances, and par values."""
+        print(f"Course Name: {self.name}")
+        print(f"Number of Holes: {self.num_holes}")
+        for i in range(self.num_holes):
+            print(f"Hole {i+1}: Distance {self.distances[i]} yards, Par {self.pars[i]}")
 
 
 def calculate_shot_distance(handicap):
