@@ -28,3 +28,8 @@ simPy_env\Scripts\activate
 
 To stop: 
 deactivate
+
+
+## Github stuff:
+
+Link is for making feature branch: https://gist.github.com/vlandham/3b2b79c40bc7353ae95a
