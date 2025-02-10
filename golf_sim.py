@@ -1,13 +1,16 @@
 import simpy
 import random
 import pandas as pd 
+import time
 # from utils import design_golf_course ##Function
 from utils import play_round ## Function
 from utils import calculate_shot_distance ## Function
 from utils import Golfer
 from utils import Course
 
-repeat_courses = 100
+
+start_time = time.time()  # Record start time
+repeat_courses = 200
 
 ##Creating database to store the scores
 column_names_database = ['player_name','player_handicap', 'course_name', 'hole_timestamp', 'hole_yardage', 'hole_par', 'player_score', 'hole_number']
@@ -30,6 +33,9 @@ courses = [
     Course("Beach Town Golf Club", 18),
     Course("Pebble Hills", 18),
     Course("Oscar Golf Resort", 18),
+    Course("Super Hard Golf Links", 18),
+    Course("Lighthouse Golf Course", 18),
+    Course("Cool Country Club", 18),
 ]
 
 final_courses = courses * repeat_courses
@@ -65,3 +71,11 @@ print("------------------")
 score_sums = sim_database.groupby(['player_name', 'course_name'])['player_score'].sum()
 score_avg = score_sums / repeat_courses
 print(score_avg)
+
+
+end_time = time.time()  # Record end time
+elapsed_time = end_time - start_time  # Calculate elapsed time
+print(f"Time taken: {elapsed_time:.2f} seconds")
+
+## Exporting to CSV
+#sim_database.to_csv("sim_golf_scores_for_ml.csv", index=False, encoding="utf-8")

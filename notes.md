@@ -11,13 +11,15 @@ binning ---> done
 
 SimPy
     Make virtual env and use for SimPy
-    Create some sort of simulation for golf scores...?.... Or maybe simulate a round of 18 holes?
+    Create some sort of simulation for golf scores...?.... Or maybe simulate a round of 18 holes? ----> done
 
-Hook up to Github ---> done, no idea why that is always such a challenge
+Hook up to Github ---> done
 
 Create Classes for Course and player.... also make code ready for a loop ----> done
 
-Run Simulation 10,000k times....? save to csv, create classifier for the type of golfer
+Run Simulation 200 times, to create dataset that is 100k rows. save to csv, create classifier for the type of golfer ----> done
+
+Classifier for for simulated data
 
 
 
