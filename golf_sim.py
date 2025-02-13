@@ -78,4 +78,4 @@ elapsed_time = end_time - start_time  # Calculate elapsed time
 print(f"Time taken: {elapsed_time:.2f} seconds")
 
 ## Exporting to CSV
-#sim_database.to_csv("sim_golf_scores_for_ml.csv", index=False, encoding="utf-8")
+sim_database.to_csv("sim_golf_scores_for_ml.csv", index=False, encoding="utf-8")

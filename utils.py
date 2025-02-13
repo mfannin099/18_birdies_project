@@ -97,11 +97,11 @@ def calculate_shot_distance(handicap):
 
     # Define variability multipliers based on handicap
     if handicap == "low":  # Low handicap
-        variability_range =[0.9, 1.2]  # Less variability
+        variability_range =[0.95, 1.3]  # Less variability
     elif handicap == "mid":  # Mid handicap
-        variability_range =[0.8, 1.1]  # Moderate variability
+        variability_range =[0.7, 1.15]  # Moderate variability
     else:
-        variability_range = [0.6, 1.03]  # More variability
+        variability_range = [0.55, 1.03]  # More variability
 
     return variability_range
 
