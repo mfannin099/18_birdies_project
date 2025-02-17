@@ -13,7 +13,7 @@ model = joblib.load('sim_golf_model_NO_STR.pkl')
 
 @app.get("/")
 def read_root():
-    return {"Handicap Predicton": "Returns low, mid, high"}
+    return {"Handicap Predicton": "Returns low,mid,high"}
 
 # Request Body Schema
 class ModelInput(BaseModel):
@@ -25,21 +25,18 @@ class ModelInput(BaseModel):
 class ModelPrediction(BaseModel):
     predicted_handicap: str
 
-@app.post("/predict", response_model=ModelPrediction)
-def predict(data: ModelInput):
-    # Convert the input data to a numpy array
-    input_data = np.array(
-        [[#data.course_name, 
-        data.hole_yardage, 
-        data.hole_par, 
-        data.player_score]]
-    )
+@app.get("/predict")  # Allowing GET requests with query parameters
+def predict(hole_yardage: float, hole_par: float, player_score: float):
+    # Convert input data to a NumPy array
+    input_data = np.array([[hole_yardage, hole_par, player_score]])
 
-    predicton = model.predict(input_data)
-    prediction_str = str(predicton[0])
+    # Make prediction
+    prediction = model.predict(input_data)
+    prediction_str = str(prediction[0])
 
-    return ModelPrediction(predicted_handicap=prediction_str)
+    return {"predicted_handicap": prediction_str}
 
+## Example url: http://127.0.0.1:8000/predict?hole_yardage=7000&hole_par=72&player_score=90
 
 if __name__ == "__main__":
     import uvicorn
