@@ -14,7 +14,7 @@ pip install -r requirements.txt
 
 ### Important Files:
 
-read_json_pandas.py  ...... Script to clean/pull data from 18birdies json file
+- read_json_pandas.py  ...... Script to clean/pull data from 18birdies json file
 
 eda_9_holes.ipynb    ...... Notebook to analysis 9 hole scores
 
