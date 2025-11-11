@@ -3,11 +3,19 @@ import json
 import pandas as pd
 from pandas import json_normalize
 
+cols_to_del = ['holeStrokes', # This is an array of ints of what you scored on each hole
+        'stats_fairwayLefts','stats_fairwayMiddles', 'stats_fairwayRights', 'stats_fairwayShorts',
+        'stats_fairwayLongs', 'stats_fairwayHoleCount', 'stats_gir',
+        'stats_girLefts', 'stats_girRights', 'stats_girShorts',
+        'stats_girLongs', 'stats_girNoChances', 'stats_girHoleCount',
+        'stats_strokeGainOverall', 'stats_strokeGainTeeToGreen',
+        'id', 'clubId_id']
+
 def clean_data(json_file, holes_for_18_calc_val = 70):
 
     ##Opening the json
-    with open(json_file, 'r') as file:
-        data = json.load(file)
+    # with open(json_file, 'r') as file:
+    data = json.load(json_file)
 
     ##Grabbing the rounds data
     rounds_data = json_normalize(data['myData']['activityData']['rounds'], 
@@ -15,6 +23,12 @@ def clean_data(json_file, holes_for_18_calc_val = 70):
                                 record_prefix='round_')
 
     rounds_data_pl = pl.DataFrame(rounds_data)
+
+        ##deleting not needed columns
+
+
+    
+
 
     ##Grabbing the courses played at
     course_data = json_normalize(data['myData']['clubData']['playedClubs'], 
@@ -28,19 +42,6 @@ def clean_data(json_file, holes_for_18_calc_val = 70):
 
 
     ##beginning to clean the columns 
-
-    ##deleting not needed columns
-    cols_to_del = ['stats_fairwayLefts',
-        'stats_fairwayMiddles', 'stats_fairwayRights', 'stats_fairwayShorts',
-        'stats_fairwayLongs', 'stats_fairwayHoleCount', 'stats_gir',
-        'stats_girLefts', 'stats_girRights', 'stats_girShorts',
-        'stats_girLongs', 'stats_girNoChances', 'stats_girHoleCount',
-        'stats_strokeGainOverall', 'stats_strokeGainTeeToGreen',
-        'id', 'clubId_id']
-
-    final_df_pl = final_df_pl.drop(columns=cols_to_del)
-
-
     ##cleaning the timestamp 
     final_df_pl = final_df_pl.with_columns(
         pl.col("timestamp").cast(pl.Datetime("ms")).alias("timestamp")
@@ -59,13 +60,8 @@ def clean_data(json_file, holes_for_18_calc_val = 70):
         .alias("is_18_holes")
     )
 
-    ##create new columns for each score for the holes
-    for i in range(1, 19):
-        final_df_pl = final_df_pl.with_columns(
-            pl.col("holeStrokes").apply(
-                lambda x: x[i - 1] if i <= len(x) else None, return_dtype=pl.Int64
-            ).alias(f'hole_{i}')
-        )
+    final_df_pl = final_df_pl.drop(columns=cols_to_del)
+
 
     return final_df_pl
 

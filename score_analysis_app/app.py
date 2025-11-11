@@ -21,6 +21,8 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+st.write("")
+st.write("")
 
 
 # After user has uploaded the file
@@ -28,4 +30,4 @@ st.markdown(
 if uploaded_file is not None:
     df = clean_data(uploaded_file)
 
-    st.dataframe(df)
+    st.dataframe(df.to_pandas(), use_container_width=True)

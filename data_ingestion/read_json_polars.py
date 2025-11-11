@@ -3,13 +3,14 @@ import pandas as pd
 import numpy as np
 from pandas import json_normalize
 import polars as pl
+file = "18Birdies_archive.json"
 
 ##Value used to determine if the # of holes is 9 or 18 for flag
 holes_for_18_calc_val = 70
 
 ##Opening the json
-with open('18Birdies_archive.json.txt', 'r') as file:
-    data = json.load(file)
+with open(file, 'r') as file_:
+    data = json.load(file_)
 
 print("------------------------")
 print("------------------------")
@@ -64,12 +65,12 @@ final_df_pl = final_df_pl.with_columns(
 )
 
 ##create new columns for each score for the holes
-for i in range(1, 19):
-    final_df_pl = final_df_pl.with_columns(
-        pl.col("holeStrokes").apply(
-            lambda x: x[i - 1] if i <= len(x) else None, return_dtype=pl.Int64
-        ).alias(f'hole_{i}')
-    )
+# for i in range(1, 19):
+#     final_df_pl = final_df_pl.with_columns(
+#         pl.col("holeStrokes").apply(
+#             lambda x: x[i - 1] if i <= len(x) else None, return_dtype=pl.Int64
+#         ).alias(f'hole_{i}')
+#    )
 print(final_df_pl.shape)
 print(final_df_pl.columns)
 print(final_df_pl.head())
