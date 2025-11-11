@@ -9,7 +9,7 @@ import numpy as np
 # Declaring FastAPI instance
 app = FastAPI(title="Golf Handicap Prediction")
 # Load the trained model
-model = joblib.load('sim_golf_model_NO_STR.pkl')
+model = joblib.load('notebooks/sim_golf_model.pkl')
 
 @app.get("/")
 def read_root():
