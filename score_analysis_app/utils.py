@@ -14,7 +14,6 @@ cols_to_del = ['holeStrokes', # This is an array of ints of what you scored on e
 def clean_data(json_file, holes_for_18_calc_val = 70):
 
     ##Opening the json
-    # with open(json_file, 'r') as file:
     data = json.load(json_file)
 
     ##Grabbing the rounds data
@@ -23,12 +22,6 @@ def clean_data(json_file, holes_for_18_calc_val = 70):
                                 record_prefix='round_')
 
     rounds_data_pl = pl.DataFrame(rounds_data)
-
-        ##deleting not needed columns
-
-
-    
-
 
     ##Grabbing the courses played at
     course_data = json_normalize(data['myData']['clubData']['playedClubs'], 
@@ -44,7 +37,7 @@ def clean_data(json_file, holes_for_18_calc_val = 70):
     ##beginning to clean the columns 
     ##cleaning the timestamp 
     final_df_pl = final_df_pl.with_columns(
-        pl.col("timestamp").cast(pl.Datetime("ms")).alias("timestamp")
+        pl.col("timestamp").cast(pl.Datetime("ms")).dt.strftime("%Y-%m-%d").alias("timestamp")
     )
 
     ##calculating par for the course (whether its 9 or 18 holes)
@@ -60,7 +53,20 @@ def clean_data(json_file, holes_for_18_calc_val = 70):
         .alias("is_18_holes")
     )
 
+    #Using is_18_holes == 0 and course_par < 30 to drop par 3 course scores
+    final_df_pl = final_df_pl.filter(~((pl.col("is_18_holes") == 0) & (pl.col("course_par") <= 30)))
+                                     
+    # Dropping unused columns
     final_df_pl = final_df_pl.drop(columns=cols_to_del)
+
+    # Renaming columns to make easier to display
+    final_df_pl = final_df_pl.rename({"timestamp": "Round Played", "score" : "Strokes Over Par", "strokes":"Total Strokes",
+                                      "stats_aces": "Aces", "stats_doubleEagleOrBetter" : "Albatrosses", 'stats_eagles':"Eagles",
+                                      "stats_birdies": "Birdies", "stats_pars": "Pars", "stats_bogeys":"Bogeys",
+                                      "stats_doubleBogeyOrWorse": "Double Bogey or Worse", 'name': 'Course',
+                                      'course_par': "Course Par", "is_18_holes": "18 Holes Played Flg"
+                                      
+                                      })
 
 
     return final_df_pl

@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import polars as pl
 from utils import clean_data
+
 st.set_page_config(
     page_title="Golf Performance Dashboard",
     page_icon="⛳",                     
@@ -30,4 +31,17 @@ st.write("")
 if uploaded_file is not None:
     df = clean_data(uploaded_file)
 
-    st.dataframe(df.to_pandas(), use_container_width=True)
+    # Disply dataframe to look at rounds
+    df_sorted = df.sort("Round Played", descending=True)
+    st.dataframe(df_sorted.to_pandas(), use_container_width=True)
+    st.caption("Note: Par 3 scores are excluded.")
+
+    # Create month/year for future use
+    df = df.with_columns(
+    pl.col("Round Played")
+    .str.strptime(pl.Datetime, "%Y-%m-%d")
+)
+    df = df.with_columns([
+    pl.col("Round Played").dt.month().alias("Month"),
+    pl.col("Round Played").dt.year().alias("Year")
+])

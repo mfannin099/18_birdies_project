@@ -64,13 +64,6 @@ final_df_pl = final_df_pl.with_columns(
     .alias("is_18_holes")
 )
 
-##create new columns for each score for the holes
-# for i in range(1, 19):
-#     final_df_pl = final_df_pl.with_columns(
-#         pl.col("holeStrokes").apply(
-#             lambda x: x[i - 1] if i <= len(x) else None, return_dtype=pl.Int64
-#         ).alias(f'hole_{i}')
-#    )
 print(final_df_pl.shape)
 print(final_df_pl.columns)
 print(final_df_pl.head())
