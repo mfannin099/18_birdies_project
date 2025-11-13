@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 import polars as pl
 import altair as alt
+import numpy as np
+
+
 from utils import clean_data, plot_time_series
 
 st.set_page_config(
@@ -121,15 +124,17 @@ if uploaded_file is not None:
 ############################################################ BEGIN Score over time
     with tab1:
         plot_time_series(df_sorted,1,18)
-        st.caption("Note: Random Walk is STD * .8")
+        st.caption("Note: Random Walk is STD * .6")
 
         st.write("")
         st.write("")
 
         plot_time_series(df_sorted,0,9)
-        st.caption("Note: Random Walk is STD * .8")
+        st.caption("Note: Random Walk is STD * .6")
 
     ##TODO: score over time, fit random walk, lin reg, rolling average (10) days
+
+    
 
     ##TODO: Distrubution of scores
 

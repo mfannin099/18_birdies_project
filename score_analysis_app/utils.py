@@ -5,6 +5,7 @@ from pandas import json_normalize
 import altair as alt
 import streamlit as st
 import numpy as np
+import statsmodels.api as sm
 
 cols_to_del = ['holeStrokes', # This is an array of ints of what you scored on each hole
         'stats_fairwayLefts','stats_fairwayMiddles', 'stats_fairwayRights', 'stats_fairwayShorts',
@@ -92,21 +93,24 @@ def plot_time_series(df, holes_played_flg, holes_played_val):
     # Compute Random Walk
     plot_df = make_random_walk(plot_df)
 
+    # Compute Linear Regression
+    plot_df = fit_linear_regression(plot_df)
+
     # Melt dataframe into long format
     plot_df_melted = plot_df.melt(
         id_vars=["Round Played"],
-        value_vars=["Total Strokes", "Rolling Avg (10 Rounds)", "Random Walk"],
+        value_vars=["Total Strokes", "Rolling Avg (10 Rounds)", "Random Walk", "Linear Regression"],
         var_name="Metric",
         value_name="Value"
     )
 
     # --- Streamlit UI filter ---
-    metric_options = ["Total Strokes", "Rolling Avg (10 Rounds)", "Random Walk"]
+    metric_options = ["Total Strokes", "Rolling Avg (10 Rounds)", "Random Walk", "Linear Regression"]
     selected_metrics = st.multiselect(
         "Select metrics to display:",
         options=metric_options,
         default=metric_options,
-        key=f"metric_selector_{holes_played_val}"  # 👈 unique key here
+        key=f"metric_selector_{holes_played_val}" 
     )
 
     # Filter based on user selection
@@ -118,8 +122,8 @@ def plot_time_series(df, holes_played_flg, holes_played_val):
 
     # Color scale
     color_scale = alt.Scale(
-        domain=["Total Strokes", "Rolling Avg (10 Rounds)", "Random Walk"],
-        range=["#1f77b4", "orange", "green"]
+        domain=["Total Strokes", "Rolling Avg (10 Rounds)", "Random Walk", "Linear Regression"],
+        range=["#1f77b4", "orange", "green", "red"]
     )
 
     # Legend toggle selection
@@ -153,7 +157,7 @@ def plot_time_series(df, holes_played_flg, holes_played_val):
             width=700,
             height=500,
         )
-        .configure_title(fontSize=16, anchor="start", fontWeight="bold")
+        .configure_title(fontSize=24, anchor="start", fontWeight="bold")
         .configure_view(strokeWidth=0)
         .interactive()
     )
@@ -166,7 +170,7 @@ def make_random_walk(df):
     len_of_walk = len(df)
     avg = df['Total Strokes'].mean()
     start_value = df['Total Strokes'].head(1).item()
-    std_dev = (df['Total Strokes'].std()) * .8
+    std_dev = (df['Total Strokes'].std()) * .6
 
     # Generate random steps
     steps = np.random.normal(loc=0, scale=std_dev, size=len_of_walk-1)
@@ -178,6 +182,19 @@ def make_random_walk(df):
     df['Random Walk'] = random_walk
 
     return df
+
+def fit_linear_regression(df):
+
+    X_numeric = np.arange(len(df))
+    X = sm.add_constant(X_numeric)
+    y = df["Total Strokes"].to_numpy()
+
+    model = sm.OLS(y, X).fit()
+    predictions = model.predict(X)
+    df['Linear Regression'] = predictions
+    
+    return df
+
 
 
 
