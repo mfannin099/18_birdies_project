@@ -119,9 +119,10 @@ if uploaded_file is not None:
     st.markdown("---")  # simple horizontal line
 
     #TODO Make Tabs
-    tab1,tab2 = st.tabs(['Scores Over Time', 'Placeholder'])
+    tab1,tab2 = st.tabs(['Score Over Time', 'Score Distubution'])
 
 ############################################################ BEGIN Score over time
+
     with tab1:
         plot_time_series(df_sorted,1,18)
         st.caption("Note: Random Walk is STD * .6")
@@ -132,7 +133,18 @@ if uploaded_file is not None:
         plot_time_series(df_sorted,0,9)
         st.caption("Note: Random Walk is STD * .6")
 
-    ##TODO: score over time, fit random walk, lin reg, rolling average (10) days
+############################################################ END Score over time
+
+############################################################ BEGIN Score Distrubution
+
+    with tab2:
+        st.write("")
+
+
+
+############################################################ END Score Distrubution
+
+
 
     
 
