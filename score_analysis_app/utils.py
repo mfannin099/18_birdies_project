@@ -94,7 +94,7 @@ def plot_time_series(df, holes_played_flg, holes_played_val):
     plot_df = make_random_walk(plot_df)
 
     # Compute Linear Regression
-    plot_df = fit_linear_regression(plot_df)
+    plot_df, model = fit_linear_regression(plot_df)
 
     # Melt dataframe into long format
     plot_df_melted = plot_df.melt(
@@ -193,7 +193,7 @@ def fit_linear_regression(df):
     predictions = model.predict(X)
     df['Linear Regression'] = predictions
     
-    return df
+    return df, model
 
 
 

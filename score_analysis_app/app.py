@@ -6,7 +6,7 @@ import numpy as np
 import scipy.stats as stats
 
 
-from utils import clean_data, plot_time_series
+from utils import clean_data, plot_time_series, fit_linear_regression
 
 st.set_page_config(
     page_title="Golf Performance Dashboard",
@@ -37,7 +37,7 @@ if uploaded_file is not None:
     df = clean_data(uploaded_file)
 
     # Disply dataframe to look at rounds
-    df_sorted = df.sort("Round Played", descending=True)
+    df_sorted = df.sort("Round Played", descending=False)
     st.dataframe(df_sorted.to_pandas(), use_container_width=True)
     st.caption("Note: Par 3 scores are excluded.")
 
@@ -142,6 +142,32 @@ if uploaded_file is not None:
         st.write("")
         full_rounds_df = df_sorted.filter(pl.col("18 Holes Played Flg") ==1)
 
+        ## Adding In Mean and Median to chart
+        mean_score = full_rounds_df["Total Strokes"].mean()
+        median_score = full_rounds_df["Total Strokes"].median()
+        std_score = full_rounds_df['Total Strokes'].std()
+
+        # High level metrics
+        col1, col2 = st.columns(2)
+        with col1:
+            n = len(full_rounds_df)
+            ci_low, ci_high = stats.t.interval(0.95, df=n-1, loc=mean_score, scale=std_score/np.sqrt(n))
+            st.metric("95% Confidence Interval for Average Score", f"{ci_low:.1f} – {ci_high:.1f}")
+        with col2:
+            pdf = full_rounds_df.to_pandas()
+            pdf, model = fit_linear_regression(pdf)
+            print(model.params)
+
+            intercept = model.params[0]
+            slope = model.params[1]
+            equation = f"y = {intercept:.1f} + {slope:.1f}x"
+            st.metric("Equation of Linear Regression Line:", equation )
+
+
+
+        st.write("")
+
+
         chart_kde = (
             alt.Chart(full_rounds_df.to_pandas())
             .transform_density(
@@ -156,10 +182,7 @@ if uploaded_file is not None:
             .properties(height=500)
         )
 
-        ## Adding In Mean and Median to chart
-        mean_score = full_rounds_df["Total Strokes"].mean()
-        median_score = full_rounds_df["Total Strokes"].median()
-        std_score = full_rounds_df['Total Strokes'].std()
+
 
         rule_mean = alt.Chart(pd.DataFrame({"x": [mean_score]})).mark_rule(color="red").encode(x="x:Q")
         rule_median = alt.Chart(pd.DataFrame({"x": [median_score]})).mark_rule(color="blue").encode(x="x:Q")
@@ -169,10 +192,7 @@ if uploaded_file is not None:
         st.caption("Blue: Median")
         st.caption("Red: Mean")
 
-        st.write("")
-        n = len(full_rounds_df)
-        ci_low, ci_high = stats.t.interval(0.95, df=n-1, loc=mean_score, scale=std_score/np.sqrt(n))
-        st.metric("95% Confidence Interval for Average Score", f"{ci_low:.1f} – {ci_high:.1f}")
+
 
         st.write("")
         full_rounds_df = full_rounds_df.with_columns(
