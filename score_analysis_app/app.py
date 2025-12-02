@@ -3,6 +3,7 @@ import pandas as pd
 import polars as pl
 import altair as alt
 import numpy as np
+import scipy.stats as stats
 
 
 from utils import clean_data, plot_time_series
@@ -139,6 +140,53 @@ if uploaded_file is not None:
 
     with tab2:
         st.write("")
+        full_rounds_df = df_sorted.filter(pl.col("18 Holes Played Flg") ==1)
+
+        chart_kde = (
+            alt.Chart(full_rounds_df.to_pandas())
+            .transform_density(
+                "Total Strokes",
+                as_=["Total Strokes", "Likelihood"],
+            )
+            .mark_area(opacity=0.5)
+            .encode(
+                x="Total Strokes:Q",
+                y="Likelihood:Q"
+            )
+            .properties(height=500)
+        )
+
+        ## Adding In Mean and Median to chart
+        mean_score = full_rounds_df["Total Strokes"].mean()
+        median_score = full_rounds_df["Total Strokes"].median()
+        std_score = full_rounds_df['Total Strokes'].std()
+
+        rule_mean = alt.Chart(pd.DataFrame({"x": [mean_score]})).mark_rule(color="red").encode(x="x:Q")
+        rule_median = alt.Chart(pd.DataFrame({"x": [median_score]})).mark_rule(color="blue").encode(x="x:Q")
+
+
+        st.altair_chart((chart_kde + rule_mean + rule_median), use_container_width=True)
+        st.caption("Blue: Median")
+        st.caption("Red: Mean")
+
+        st.write("")
+        n = len(full_rounds_df)
+        ci_low, ci_high = stats.t.interval(0.95, df=n-1, loc=mean_score, scale=std_score/np.sqrt(n))
+        st.metric("95% Confidence Interval for Average Score", f"{ci_low:.1f} – {ci_high:.1f}")
+
+        st.write("")
+        full_rounds_df = full_rounds_df.with_columns(
+            ((pl.col("Total Strokes") - mean_score) / std_score).alias("z")
+        )
+
+        st.header("Outlier Rounds (2 Standard Deviations)")
+        outliers = full_rounds_df.filter(pl.col("z").abs() > 2)
+        st.write(outliers)
+
+
+
+
+
 
 
 
