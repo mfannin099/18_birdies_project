@@ -211,6 +211,7 @@ if uploaded_file is not None:
 
     ##Course Breakdowns
         st.write("")
+        st.write("")
         st.header("Course Breakdown") 
 
         st.write("Distinct Courses Played: ", len(full_rounds_df['Course'].value_counts()))
@@ -225,8 +226,28 @@ if uploaded_file is not None:
         )
 
         st.table(
-    top_courses
-)
+            top_courses
+        )
+
+        course_stats_wide = (
+            full_rounds_df
+                .groupby("Course")
+                .agg(
+                    pl.col("Total Strokes").mean().alias("avg_score"),
+                    pl.count().alias("rounds_played")
+                )
+        )
+
+        course_stats_long = course_stats_wide.melt(
+            id_vars=["Course"],     # keep these columns
+            value_vars=["avg_score"], # columns to unpivot
+            variable_name="Metric",
+            value_name="Score"
+        )
+        course_stats_long = course_stats_long.sort("Score")
+
+        st.write("Average Score by Course:")
+        st.table(course_stats_long)
 
 
 
