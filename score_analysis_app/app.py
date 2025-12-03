@@ -119,8 +119,7 @@ if uploaded_file is not None:
     st.write("")
     st.markdown("---")  # simple horizontal line
 
-    #TODO Make Tabs
-    tab1,tab2 = st.tabs(['Score Over Time', 'Score Distubution'])
+    tab1,tab2, tab3 = st.tabs(['Score Over Time', 'Score Distubution', "Score Per Hole"])
 
 ############################################################ BEGIN Score over time
 
@@ -250,19 +249,15 @@ if uploaded_file is not None:
         st.table(course_stats_long)
 
 
-
-
-
-
 ############################################################ END Score Distrubution / Course Breakdown
 
+############################################################ BEGIN Score per Hole
+
+##TODO: Breakdown of Birdie, par, boegey, etc
+
+
+############################################################ END Score per Hole
 
 
 
 
-    ##TODO: Breakdown of Birdie, par, boegey, etc
-
-
-
-
-    ## Maybe for somethings double all 9 hole scores..?
