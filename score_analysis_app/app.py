@@ -136,7 +136,7 @@ if uploaded_file is not None:
 
 ############################################################ END Score over time
 
-############################################################ BEGIN Score Distrubution
+############################################################ BEGIN Score Distrubution/ Course Breakdown
 
     with tab2:
         st.write("")
@@ -146,17 +146,22 @@ if uploaded_file is not None:
         mean_score = full_rounds_df["Total Strokes"].mean()
         median_score = full_rounds_df["Total Strokes"].median()
         std_score = full_rounds_df['Total Strokes'].std()
+        n = len(full_rounds_df)
 
         # High level metrics
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         with col1:
-            n = len(full_rounds_df)
             ci_low, ci_high = stats.t.interval(0.95, df=n-1, loc=mean_score, scale=std_score/np.sqrt(n))
             st.metric("95% Confidence Interval for Average Score", f"{ci_low:.1f} – {ci_high:.1f}")
+
         with col2:
+            st.write("")
+
+
+
+        with col3:
             pdf = full_rounds_df.to_pandas()
             pdf, model = fit_linear_regression(pdf)
-            print(model.params)
 
             intercept = model.params[0]
             slope = model.params[1]
@@ -204,23 +209,39 @@ if uploaded_file is not None:
         st.write(outliers)
 
 
+    ##Course Breakdowns
+        st.write("")
+        st.header("Course Breakdown") 
+
+        st.write("Distinct Courses Played: ", len(full_rounds_df['Course'].value_counts()))
+
+        st.write("Most Played Courses:")
+        top_courses = (
+            full_rounds_df
+                .select(pl.col("Course").value_counts())  
+                .unnest("Course")                       
+                .sort("counts", descending=True)            
+                .head(5)
+        )
+
+        st.table(
+    top_courses
+)
 
 
 
 
 
 
-############################################################ END Score Distrubution
+############################################################ END Score Distrubution / Course Breakdown
 
 
 
-    
 
-    ##TODO: Distrubution of scores
 
     ##TODO: Breakdown of Birdie, par, boegey, etc
 
-    ##TODO: Course Breakdowns 
+
 
 
     ## Maybe for somethings double all 9 hole scores..?
