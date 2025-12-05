@@ -284,43 +284,73 @@ if uploaded_file is not None:
         st.altair_chart(donut, use_container_width=True)
 
         st.write("")
-        st.write(df_sorted)
+        st.write("")
+
 
         # Strokes over time
-        
+        # Create an index column (1, 2, 3, ..., N)
+        full_rounds_df = full_rounds_df.with_columns(
+            pl.Series("Round Index", list(range(1, full_rounds_df.height + 1)))
+        )
+
+        # Melt into long format
         long_df = (
-            df_sorted
+            full_rounds_df
                 .select([
-                    pl.col("Round Played"),
+                    pl.col("Round Index"),
                     pl.col("Birdies"),
-                    pl.col("Pars")
+                    pl.col("Pars"),
+                    pl.col("Bogeys"),
+                    pl.col("Double Bogey or Worse")
                 ])
                 .melt(
-                    id_vars="Round Played",
-                    value_vars=["Birdies", "Pars"],
+                    id_vars="Round Index",
+                    value_vars=[
+                        "Birdies",
+                        "Pars",
+                        "Bogeys",
+                        "Double Bogey or Worse"
+                    ],
                     variable_name="Score Type",
                     value_name="Count"
                 )
                 .to_pandas()
         )
 
-        # Altair line chart
+        # Altair interactive legend
+        selection = alt.selection_point(fields=["Score Type"], bind="legend")
+
         chart = (
             alt.Chart(long_df)
                 .mark_line(point=True)
                 .encode(
-                    x=alt.X("Round Played:T", title="Round Played"),
+                    x=alt.X("Round Index:Q", title="Round Number"),
                     y=alt.Y("Count:Q", title="Number of Scoring Events"),
                     color="Score Type:N",
-                    tooltip=["Round Played", "Score Type", "Count"]
+                    opacity=alt.condition(selection, alt.value(1.0), alt.value(0.2)),
+                    tooltip=["Round Index", "Score Type", "Count"]
                 )
-                .properties(
-                    title="Birdies & Pars Over Time",
-                    height=400
-                )
+                .properties(title="Scoring Events Over Time (Interactive)", height=400)
+                .add_params(selection)
         )
 
         st.altair_chart(chart, use_container_width=True)
+
+        # Select the score columns and compute mean
+        average_scores = full_rounds_df.select([
+            pl.col("Birdies").mean().alias("Birdies"),
+            pl.col("Pars").mean().alias("Pars"),
+            pl.col("Bogeys").mean().alias("Bogeys"),
+            pl.col("Double Bogey or Worse").mean().alias("Double Bogey or Worse")
+        ])
+
+        st.write("")
+        st.write("")
+
+        st.header("Average Scores per Round:")
+        st.table(average_scores.to_pandas())
+
+
 
 
 ############################################################ END Score per Hole
