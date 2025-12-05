@@ -4,3 +4,4 @@ streamlit == 1.23.1
 altair == 5.0.1
 statsmodels == 0.13.5
 numpy == 1.21.6
+scipy == 1.7.3
