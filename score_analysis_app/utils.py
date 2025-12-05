@@ -196,6 +196,36 @@ def fit_linear_regression(df):
     return df, model
 
 
+def create_score_df(df_sorted):
+
+    # Calculating Measures for Calculations
+    total_strokes = df_sorted.select(pl.col("Total Strokes").sum()).item()
+    total_aces = df_sorted.select(pl.col("Aces").sum()).item()
+    total_alba = df_sorted.select(pl.col("Albatrosses").sum()).item()
+    total_eagles = df_sorted.select(pl.col("Eagles").sum()).item()
+    total_birides = df_sorted.select(pl.col("Birdies").sum()).item()
+    total_pars = df_sorted.select(pl.col("Pars").sum()).item()
+    total_bogeys = df_sorted.select(pl.col("Bogeys").sum()).item()
+    total_bogeys_double = df_sorted.select(pl.col("Double Bogey or Worse").sum()).item()
+
+
+    scoring_df = pl.DataFrame({
+    "Score Type": ["Aces", "Albatrosses", "Eagles", "Birdies", "Pars", "Bogeys", "Double Bogey or Worse"],
+    "Count": [
+        total_aces,
+        total_alba,
+        total_eagles,
+        total_birides,
+        total_pars,
+        total_bogeys,
+        total_bogeys_double
+    ]
+})
+
+    return scoring_df
+
+
+
 
 
 

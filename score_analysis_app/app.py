@@ -6,7 +6,7 @@ import numpy as np
 import scipy.stats as stats
 
 
-from utils import clean_data, plot_time_series, fit_linear_regression
+from utils import clean_data, plot_time_series, fit_linear_regression, create_score_df
 
 st.set_page_config(
     page_title="Golf Performance Dashboard",
@@ -254,6 +254,73 @@ if uploaded_file is not None:
 ############################################################ BEGIN Score per Hole
 
 ##TODO: Breakdown of Birdie, par, boegey, etc
+
+    # THis is going to exclude just Par 3 Courses (Already dropped)
+    with tab3:
+        scoring_df = create_score_df(df_sorted)
+
+        # Convert Polars DF → Pandas (Altair expects pandas)
+        scoring_pd = scoring_df.to_pandas()
+
+        # Compute percentages (optional but nice for tooltips)
+        scoring_pd["Pct"] = scoring_pd["Count"] / scoring_pd["Count"].sum()
+
+        # Base pie chart
+        base = alt.Chart(scoring_pd).encode(
+            theta=alt.Theta("Count:Q"),
+            color=alt.Color("Score Type:N"),
+            tooltip=[
+                alt.Tooltip("Score Type:N"),
+                alt.Tooltip("Count:Q"),
+                alt.Tooltip("Pct:Q", format=".1%")
+            ]
+        )
+
+        # Donut = arc with innerRadius
+        donut = base.mark_arc(innerRadius=50).properties(
+            title = "Score Type Distrubution (Includes 9 and 18 Holes)"
+        )
+
+        st.altair_chart(donut, use_container_width=True)
+
+        st.write("")
+        st.write(df_sorted)
+
+        # Strokes over time
+        
+        long_df = (
+            df_sorted
+                .select([
+                    pl.col("Round Played"),
+                    pl.col("Birdies"),
+                    pl.col("Pars")
+                ])
+                .melt(
+                    id_vars="Round Played",
+                    value_vars=["Birdies", "Pars"],
+                    variable_name="Score Type",
+                    value_name="Count"
+                )
+                .to_pandas()
+        )
+
+        # Altair line chart
+        chart = (
+            alt.Chart(long_df)
+                .mark_line(point=True)
+                .encode(
+                    x=alt.X("Round Played:T", title="Round Played"),
+                    y=alt.Y("Count:Q", title="Number of Scoring Events"),
+                    color="Score Type:N",
+                    tooltip=["Round Played", "Score Type", "Count"]
+                )
+                .properties(
+                    title="Birdies & Pars Over Time",
+                    height=400
+                )
+        )
+
+        st.altair_chart(chart, use_container_width=True)
 
 
 ############################################################ END Score per Hole
