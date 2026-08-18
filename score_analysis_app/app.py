@@ -230,7 +230,7 @@ if uploaded_file is not None:
 
         course_stats_wide = (
             full_rounds_df
-                .groupby("Course")
+                .group_by("Course")
                 .agg(
                     pl.col("Total Strokes").mean().alias("avg_score"),
                     pl.count().alias("rounds_played")

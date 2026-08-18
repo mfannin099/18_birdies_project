@@ -21,17 +21,15 @@ def clean_data(json_file, holes_for_18_calc_val = 70):
     data = json.load(json_file)
 
     ##Grabbing the rounds data
-    rounds_data = json_normalize(data['myData']['activityData']['rounds'], 
-                                sep='_', 
-                                record_prefix='round_')
+    rounds_data = json_normalize(data['myData']['activityData']['rounds'],
+                                sep='_')
 
     rounds_data_pl = pl.DataFrame(rounds_data)
 
     ##Grabbing the courses played at
-    course_data = json_normalize(data['myData']['clubData']['playedClubs'], 
-                             sep='_', 
-                             record_prefix='round_')
-    
+    course_data = json_normalize(data['myData']['clubData']['playedClubs'],
+                             sep='_')
+
     club_data_pl = pl.DataFrame(course_data)
 
     ##joining the data
@@ -61,7 +59,7 @@ def clean_data(json_file, holes_for_18_calc_val = 70):
     final_df_pl = final_df_pl.filter(~((pl.col("is_18_holes") == 0) & (pl.col("course_par") <= 30)))
                                      
     # Dropping unused columns
-    final_df_pl = final_df_pl.drop(columns=cols_to_del)
+    final_df_pl = final_df_pl.drop(cols_to_del)
 
     # Renaming columns to make easier to display
     final_df_pl = final_df_pl.rename({"timestamp": "Round Played", "score" : "Strokes Over Par", "strokes":"Total Strokes",
