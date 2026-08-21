@@ -15,10 +15,57 @@ cols_to_del = ['holeStrokes', # This is an array of ints of what you scored on e
         'stats_strokeGainOverall', 'stats_strokeGainTeeToGreen',
         'id', 'clubId_id']
 
+# Fields clean_data() reads off each round/club record, keyed by the exact
+# path the 18Birdies export uses. Checked up front so a changed/incomplete
+# export fails with one clear message instead of a Polars traceback deep
+# inside the join/rename pipeline.
+ROUND_REQUIRED_FIELDS = ['timestamp', 'score', 'strokes', 'clubId']
+ROUND_STATS_REQUIRED_FIELDS = [
+    'aces', 'doubleEagleOrBetter', 'eagles', 'birdies', 'pars',
+    'bogeys', 'doubleBogeyOrWorse',
+]
+CLUB_REQUIRED_FIELDS = ['clubId', 'name']
+
+
+class SchemaValidationError(ValueError):
+    """Raised when an uploaded 18Birdies export is missing fields clean_data() relies on."""
+
+
+def validate_18birdies_schema(data):
+    try:
+        rounds = data['myData']['activityData']['rounds']
+        played_clubs = data['myData']['clubData']['playedClubs']
+    except (KeyError, TypeError) as exc:
+        raise SchemaValidationError(
+            "Expected top-level keys myData.activityData.rounds and "
+            "myData.clubData.playedClubs were not found. Is this a 18Birdies "
+            "account data export?"
+        ) from exc
+
+    if not rounds:
+        raise SchemaValidationError("myData.activityData.rounds is empty — no rounds to analyze.")
+
+    for i, round_record in enumerate(rounds):
+        missing = [f for f in ROUND_REQUIRED_FIELDS if f not in round_record]
+        if missing:
+            raise SchemaValidationError(f"Round {i} is missing field(s): {missing}")
+        if 'id' not in round_record.get('clubId', {}):
+            raise SchemaValidationError(f"Round {i}'s clubId is missing 'id'.")
+        stats_missing = [f for f in ROUND_STATS_REQUIRED_FIELDS if f not in round_record.get('stats', {})]
+        if stats_missing:
+            raise SchemaValidationError(f"Round {i}'s stats is missing field(s): {stats_missing}")
+
+    for i, club_record in enumerate(played_clubs):
+        missing = [f for f in CLUB_REQUIRED_FIELDS if f not in club_record]
+        if missing:
+            raise SchemaValidationError(f"playedClubs entry {i} is missing field(s): {missing}")
+
+
 def clean_data(json_file, holes_for_18_calc_val = 70):
 
     ##Opening the json
     data = json.load(json_file)
+    validate_18birdies_schema(data)
 
     ##Grabbing the rounds data
     rounds_data = json_normalize(data['myData']['activityData']['rounds'],

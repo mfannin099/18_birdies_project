@@ -6,7 +6,7 @@ import numpy as np
 import scipy.stats as stats
 
 
-from utils import clean_data, plot_time_series, fit_linear_regression, create_score_df
+from utils import clean_data, plot_time_series, fit_linear_regression, create_score_df, SchemaValidationError
 
 st.set_page_config(
     page_title="Golf Performance Dashboard",
@@ -34,7 +34,11 @@ st.write("")
 # After user has uploaded the file
 
 if uploaded_file is not None:
-    df = clean_data(uploaded_file)
+    try:
+        df = clean_data(uploaded_file)
+    except SchemaValidationError as e:
+        st.error(f"This file doesn't look like a valid 18Birdies export: {e}")
+        st.stop()
 
     # Disply dataframe to look at rounds
     df_sorted = df.sort("Round Played", descending=False)
@@ -220,7 +224,7 @@ if uploaded_file is not None:
             full_rounds_df
                 .select(pl.col("Course").value_counts())  
                 .unnest("Course")                       
-                .sort("counts", descending=True)            
+                .sort("count", descending=True)
                 .head(5)
         )
 
@@ -233,13 +237,13 @@ if uploaded_file is not None:
                 .group_by("Course")
                 .agg(
                     pl.col("Total Strokes").mean().alias("avg_score"),
-                    pl.count().alias("rounds_played")
+                    pl.len().alias("rounds_played")
                 )
         )
 
-        course_stats_long = course_stats_wide.melt(
-            id_vars=["Course"],     # keep these columns
-            value_vars=["avg_score"], # columns to unpivot
+        course_stats_long = course_stats_wide.unpivot(
+            index=["Course"],     # keep these columns
+            on=["avg_score"], # columns to unpivot
             variable_name="Metric",
             value_name="Score"
         )
@@ -303,9 +307,9 @@ if uploaded_file is not None:
                     pl.col("Bogeys"),
                     pl.col("Double Bogey or Worse")
                 ])
-                .melt(
-                    id_vars="Round Index",
-                    value_vars=[
+                .unpivot(
+                    index="Round Index",
+                    on=[
                         "Birdies",
                         "Pars",
                         "Bogeys",
