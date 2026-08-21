@@ -42,7 +42,7 @@ if uploaded_file is not None:
 
     # Disply dataframe to look at rounds
     df_sorted = df.sort("Round Played", descending=False)
-    st.dataframe(df_sorted.to_pandas(), use_container_width=True)
+    st.dataframe(df_sorted.sort("Round Played", descending=True).to_pandas(), use_container_width=True)
     st.caption("Note: Par 3 scores are excluded.")
 
     # Create month/year for future use
@@ -129,13 +129,13 @@ if uploaded_file is not None:
 
     with tab1:
         plot_time_series(df_sorted,1,18)
-        st.caption("Note: Random Walk is STD * .6")
+        st.caption("Note: Random Walk is STD * .4")
 
         st.write("")
         st.write("")
 
         plot_time_series(df_sorted,0,9)
-        st.caption("Note: Random Walk is STD * .6")
+        st.caption("Note: Random Walk is STD * .4")
 
 ############################################################ END Score over time
 
@@ -236,21 +236,14 @@ if uploaded_file is not None:
             full_rounds_df
                 .group_by("Course")
                 .agg(
-                    pl.col("Total Strokes").mean().alias("avg_score"),
-                    pl.len().alias("rounds_played")
+                    pl.col("Total Strokes").mean().round(1).alias("Average Score"),
+                    pl.len().alias("Times Played")
                 )
+                .sort("Average Score")
         )
-
-        course_stats_long = course_stats_wide.unpivot(
-            index=["Course"],     # keep these columns
-            on=["avg_score"], # columns to unpivot
-            variable_name="Metric",
-            value_name="Score"
-        )
-        course_stats_long = course_stats_long.sort("Score")
 
         st.write("Average Score by Course:")
-        st.table(course_stats_long)
+        st.table(course_stats_wide)
 
 
 ############################################################ END Score Distrubution / Course Breakdown

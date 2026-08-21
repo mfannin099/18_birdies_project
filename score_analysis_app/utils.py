@@ -13,6 +13,7 @@ cols_to_del = ['holeStrokes', # This is an array of ints of what you scored on e
         'stats_girLefts', 'stats_girRights', 'stats_girShorts',
         'stats_girLongs', 'stats_girNoChances', 'stats_girHoleCount',
         'stats_strokeGainOverall', 'stats_strokeGainTeeToGreen',
+        'stats_putts', 'stats_puttHoleCount', 'stats_recommendedStats',
         'id', 'clubId_id']
 
 # Fields clean_data() reads off each round/club record, keyed by the exact
@@ -215,7 +216,7 @@ def make_random_walk(df):
     len_of_walk = len(df)
     avg = df['Total Strokes'].mean()
     start_value = df['Total Strokes'].head(1).item()
-    std_dev = (df['Total Strokes'].std()) * .6
+    std_dev = (df['Total Strokes'].std()) * .4
 
     # Generate random steps
     steps = np.random.normal(loc=0, scale=std_dev, size=len_of_walk-1)
