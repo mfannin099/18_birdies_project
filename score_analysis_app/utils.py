@@ -340,6 +340,60 @@ def personal_bests(df, streak_len=3):
     }
 
 
+def handicap_trend(df, n_recent=20, n_best=8, min_rounds=8):
+    """Handicap Index as of each 18-hole round: for round i, the best `n_best`
+    differentials among the (up to) `n_recent` rounds ending at i. Uses the same
+    Total Strokes - Course Par differential as calculate_handicap_index().
+    Starts at the `min_rounds`-th round. Returns a Polars DataFrame with
+    `Round Played` and `Handicap Index` (empty if there are too few rounds).
+    """
+    rounds = df.filter(pl.col("18 Holes Played Flg") == 1).sort("Round Played")
+    diffs = (rounds["Total Strokes"] - rounds["Course Par"]).to_list()
+    dates = rounds["Round Played"].to_list()
+
+    out_dates, out_index = [], []
+    for i in range(min_rounds - 1, len(diffs)):
+        window = diffs[max(0, i - n_recent + 1): i + 1]
+        out_dates.append(dates[i])
+        out_index.append(round(sum(sorted(window)[:n_best]) / n_best, 1))
+    return pl.DataFrame({"Round Played": out_dates, "Handicap Index": out_index}, schema={"Round Played": rounds.schema["Round Played"], "Handicap Index": pl.Float64})
+
+
+SCORE_TYPES = ["Eagle or Better", "Birdies", "Pars", "Bogeys", "Double Bogey or Worse"]
+
+
+def scoring_events_by_round(df_sorted, mode="Raw counts"):
+    """Long-format scoring events per round (oldest first) for stacked charts.
+
+    `mode`: "Raw counts", "Per 18 holes" (count * 18 / holes played) or
+    "% of holes". 9-hole rounds (`18 Holes Played Flg` == 0) count as 9 holes.
+    Returns a pandas DataFrame: Round Index, Round Played, Score Type, Value.
+    """
+    base = df_sorted.sort("Round Played").with_columns(
+        pl.when(pl.col("18 Holes Played Flg") == 1).then(18).otherwise(9).alias("Holes Played"),
+        (pl.col("Aces") + pl.col("Albatrosses") + pl.col("Eagles")).alias("Eagle or Better"),
+        pl.int_range(1, df_sorted.height + 1).alias("Round Index"),
+    )
+    long_df = base.select(["Round Index", "Round Played", "Holes Played"] + SCORE_TYPES).unpivot(
+        index=["Round Index", "Round Played", "Holes Played"],
+        on=SCORE_TYPES, variable_name="Score Type", value_name="Count",
+    )
+    if mode == "Per 18 holes":
+        value = pl.col("Count") * 18 / pl.col("Holes Played")
+    elif mode == "% of holes":
+        value = pl.col("Count") / pl.col("Holes Played") * 100
+    else:
+        value = pl.col("Count").cast(pl.Float64)
+    return (
+        long_df.with_columns(
+            value.alias("Value"),
+            pl.col("Score Type").replace_strict(SCORE_TYPES, list(range(len(SCORE_TYPES))), return_dtype=pl.Int64).alias("Type Order"),
+        )
+        .drop(["Count", "Holes Played"])
+        .to_pandas()
+    )
+
+
 def create_score_df(df_sorted):
 
     # Calculating Measures for Calculations

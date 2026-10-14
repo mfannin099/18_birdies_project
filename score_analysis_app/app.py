@@ -6,7 +6,7 @@ import numpy as np
 import scipy.stats as stats
 
 
-from utils import clean_data, plot_time_series, fit_linear_regression, create_score_df, calculate_handicap_index, monthly_scoring_summary, personal_bests, SchemaValidationError
+from utils import clean_data, plot_time_series, fit_linear_regression, create_score_df, calculate_handicap_index, handicap_trend, scoring_events_by_round, SCORE_TYPES, monthly_scoring_summary, personal_bests, SchemaValidationError
 
 st.set_page_config(
     page_title="Golf Performance Dashboard",
@@ -160,6 +160,29 @@ if uploaded_file is not None:
         plot_time_series(df_sorted,0,9)
         st.caption("Note: Random Walk is STD * .4")
 
+        st.write("")
+        st.write("")
+        st.subheader("Estimated Handicap Index Over Time")
+        trend = handicap_trend(df_sorted)
+        if trend.is_empty():
+            st.info("The handicap trend needs at least 8 rounds of 18 holes.")
+        else:
+            trend_chart = (
+                alt.Chart(trend.to_pandas())
+                .mark_line(point=alt.OverlayMarkDef(filled=True, size=50), color="#2ca02c")
+                .encode(
+                    x=alt.X("Round Played:O", title="Round Played",
+                            axis=alt.Axis(labelAngle=-45, labelAlign="right")),
+                    y=alt.Y("Handicap Index:Q", scale=alt.Scale(zero=False)),
+                    tooltip=[alt.Tooltip("Round Played", title="As of round"),
+                             alt.Tooltip("Handicap Index", format=".1f")],
+                )
+                .properties(height=400)
+            )
+            st.altair_chart(trend_chart, use_container_width=True)
+            st.caption("Rolling best 8 of the last 20 18-hole rounds, using Total Strokes - Course Par "
+                       "(estimate; no course rating/slope). Starts once 8 rounds exist.")
+
 ############################################################ END Score over time
 
 ############################################################ BEGIN Score Distrubution/ Course Breakdown
@@ -201,27 +224,38 @@ if uploaded_file is not None:
         st.write("")
 
 
-        chart_kde = (
-            alt.Chart(full_rounds_df.to_pandas())
-            .transform_density(
-                "Total Strokes",
-                as_=["Total Strokes", "Likelihood"],
-            )
-            .mark_area(opacity=0.5)
-            .encode(
-                x="Total Strokes:Q",
-                y="Likelihood:Q"
-            )
-            .properties(height=500)
-        )
+        dist_view = st.radio("Distribution view:", ["Density", "Histogram"], horizontal=True, key="dist_view")
 
-
+        if dist_view == "Histogram":
+            chart_dist = (
+                alt.Chart(full_rounds_df.to_pandas())
+                .mark_bar(opacity=0.6)
+                .encode(
+                    x=alt.X("Total Strokes:Q", bin=alt.Bin(step=2), title="Total Strokes"),
+                    y=alt.Y("count()", title="Rounds"),
+                )
+                .properties(height=500)
+            )
+        else:
+            chart_dist = (
+                alt.Chart(full_rounds_df.to_pandas())
+                .transform_density(
+                    "Total Strokes",
+                    as_=["Total Strokes", "Likelihood"],
+                )
+                .mark_area(opacity=0.5)
+                .encode(
+                    x="Total Strokes:Q",
+                    y="Likelihood:Q"
+                )
+                .properties(height=500)
+            )
 
         rule_mean = alt.Chart(pd.DataFrame({"x": [mean_score]})).mark_rule(color="red").encode(x="x:Q")
         rule_median = alt.Chart(pd.DataFrame({"x": [median_score]})).mark_rule(color="blue").encode(x="x:Q")
 
 
-        st.altair_chart((chart_kde + rule_mean + rule_median), use_container_width=True)
+        st.altair_chart((chart_dist + rule_mean + rule_median), use_container_width=True)
         st.caption("Blue: Median")
         st.caption("Red: Mean")
 
@@ -275,105 +309,99 @@ if uploaded_file is not None:
 
 ############################################################ BEGIN Score per Hole
 
-##TODO: Breakdown of Birdie, par, boegey, etc
-
-    # THis is going to exclude just Par 3 Courses (Already dropped)
+    # This excludes just Par 3 Courses (already dropped in clean_data)
     with tab3:
-        scoring_df = create_score_df(df_sorted)
+        ctl1, ctl2, ctl3 = st.columns(3)
+        with ctl1:
+            hole_filter = st.radio("Rounds to include:", ["All rounds", "18 holes only"], horizontal=True, key="t3_filter")
+        with ctl2:
+            value_mode = st.radio("Show values as:", ["Raw counts", "Per 18 holes", "% of holes"], horizontal=True, key="t3_mode",
+                                  help="Per 18 holes scales 9-hole rounds up (count x 18 / 9) so they compare fairly with 18-hole rounds.")
+        with ctl3:
+            roll_window = st.slider("Rolling window (rounds)", 3, 30, 10, key="t3_window")
 
-        # Convert Polars DF → Pandas (Altair expects pandas)
-        scoring_pd = scoring_df.to_pandas()
+        t3_df = df_sorted if hole_filter == "All rounds" else df_sorted.filter(pl.col("18 Holes Played Flg") == 1)
 
-        # Compute percentages (optional but nice for tooltips)
-        scoring_pd["Pct"] = scoring_pd["Count"] / scoring_pd["Count"].sum()
+        if t3_df.is_empty():
+            st.warning("No rounds to show for this filter.")
+        else:
+            # Donut: share of each score type
+            scoring_pd = create_score_df(t3_df).to_pandas()
+            scoring_pd["Pct"] = scoring_pd["Count"] / scoring_pd["Count"].sum()
 
-        # Base pie chart
-        base = alt.Chart(scoring_pd).encode(
-            theta=alt.Theta("Count:Q"),
-            color=alt.Color("Score Type:N"),
-            tooltip=[
-                alt.Tooltip("Score Type:N"),
-                alt.Tooltip("Count:Q"),
-                alt.Tooltip("Pct:Q", format=".1%")
-            ]
-        )
-
-        # Donut = arc with innerRadius
-        donut = base.mark_arc(innerRadius=50).properties(
-            title = "Score Type Distrubution (Includes 9 and 18 Holes)"
-        )
-
-        st.altair_chart(donut, use_container_width=True)
-
-        st.write("")
-        st.write("")
-
-
-        # Strokes over time
-        # Create an index column (1, 2, 3, ..., N)
-        full_rounds_df = full_rounds_df.with_columns(
-            pl.Series("Round Index", list(range(1, full_rounds_df.height + 1)))
-        )
-
-        # Melt into long format
-        long_df = (
-            full_rounds_df
-                .select([
-                    pl.col("Round Index"),
-                    pl.col("Birdies"),
-                    pl.col("Pars"),
-                    pl.col("Bogeys"),
-                    pl.col("Double Bogey or Worse")
-                ])
-                .unpivot(
-                    index="Round Index",
-                    on=[
-                        "Birdies",
-                        "Pars",
-                        "Bogeys",
-                        "Double Bogey or Worse"
-                    ],
-                    variable_name="Score Type",
-                    value_name="Count"
-                )
-                .to_pandas()
-        )
-
-        # Altair interactive legend
-        selection = alt.selection_point(fields=["Score Type"], bind="legend")
-
-        chart = (
-            alt.Chart(long_df)
-                .mark_line(point=True)
+            donut = (
+                alt.Chart(scoring_pd)
                 .encode(
-                    x=alt.X("Round Index:Q", title="Round Number"),
-                    y=alt.Y("Count:Q", title="Number of Scoring Events"),
-                    color="Score Type:N",
-                    opacity=alt.condition(selection, alt.value(1.0), alt.value(0.2)),
-                    tooltip=["Round Index", "Score Type", "Count"]
+                    theta=alt.Theta("Count:Q"),
+                    color=alt.Color("Score Type:N"),
+                    tooltip=[alt.Tooltip("Score Type:N"), alt.Tooltip("Count:Q"), alt.Tooltip("Pct:Q", format=".1%")],
                 )
-                .properties(title="Scoring Events Over Time (Interactive)", height=400)
-                .add_params(selection)
-        )
+                .mark_arc(innerRadius=50)
+                .properties(title=f"Score Type Distribution ({hole_filter})")
+            )
+            st.altair_chart(donut, use_container_width=True)
 
-        st.altair_chart(chart, use_container_width=True)
+            st.write("")
+            st.write("")
 
-        # Select the score columns and compute mean
-        average_scores = full_rounds_df.select([
-            pl.col("Birdies").mean().alias("Birdies"),
-            pl.col("Pars").mean().alias("Pars"),
-            pl.col("Bogeys").mean().alias("Bogeys"),
-            pl.col("Double Bogey or Worse").mean().alias("Double Bogey or Worse")
-        ])
+            # Stacked composition per round
+            events = scoring_events_by_round(t3_df, value_mode)
+            color_scale = alt.Scale(
+                domain=SCORE_TYPES,
+                range=["#9467bd", "#2ca02c", "#1f77b4", "#ff7f0e", "#d62728"],
+            )
+            y_title = {"Raw counts": "Holes", "Per 18 holes": "Holes per 18", "% of holes": "% of Holes"}[value_mode]
+            stacked = (
+                alt.Chart(events)
+                .mark_bar()
+                .encode(
+                    x=alt.X("Round Index:O", title="Round Number (oldest first)"),
+                    y=alt.Y("Value:Q", title=y_title),
+                    color=alt.Color("Score Type:N", scale=color_scale, sort=SCORE_TYPES),
+                    order=alt.Order("Type Order:Q", sort="ascending"),
+                    tooltip=["Round Played", "Round Index", "Score Type", alt.Tooltip("Value:Q", format=".1f")],
+                )
+                .properties(title="Scoring Composition per Round", height=400)
+            )
+            st.altair_chart(stacked, use_container_width=True)
+            if value_mode == "Raw counts" and hole_filter == "All rounds":
+                st.caption("Raw counts mix 9- and 18-hole rounds, so 9-hole bars are shorter. Use Per 18 holes to compare fairly.")
 
-        st.write("")
-        st.write("")
+            st.write("")
+            st.write("")
 
-        st.header("Average Scores per Round:")
-        st.table(average_scores.to_pandas())
+            # Rolling average of doubles+ per 18 holes (consistency)
+            doubles = (
+                scoring_events_by_round(t3_df, "Per 18 holes")
+                .query("`Score Type` == 'Double Bogey or Worse'")
+                .sort_values("Round Index")
+                .rename(columns={"Value": "Double Bogeys+ per 18"})
+            )
+            window = min(roll_window, len(doubles))
+            doubles["Rolling Avg"] = doubles["Double Bogeys+ per 18"].rolling(window=window, min_periods=window).mean()
+            base_d = alt.Chart(doubles).encode(x=alt.X("Round Index:Q", title="Round Number (oldest first)"))
+            raw_pts = base_d.mark_circle(opacity=0.35, size=40).encode(
+                y=alt.Y("Double Bogeys+ per 18:Q", title="Double Bogeys or Worse per 18 holes"),
+                tooltip=["Round Played", alt.Tooltip("Double Bogeys+ per 18:Q", format=".1f")],
+            )
+            roll_line = base_d.mark_line(color="#d62728", strokeWidth=3).encode(
+                y="Rolling Avg:Q",
+                tooltip=["Round Played", alt.Tooltip("Rolling Avg:Q", format=".2f")],
+            )
+            st.altair_chart(
+                (raw_pts + roll_line).properties(title=f"Double Bogeys or Worse - {window}-Round Rolling Average", height=350),
+                use_container_width=True,
+            )
+            st.caption("A falling line means fewer blow-up holes, i.e. more consistent golf.")
 
-
-
+            # Average per round
+            st.write("")
+            st.header("Average Scoring Events per Round:" if value_mode != "Per 18 holes" else "Average Scoring Events per 18 Holes:")
+            avg_tbl = (
+                events.groupby("Score Type")["Value"].mean().reindex(SCORE_TYPES).round(2)
+                .to_frame(y_title).T
+            )
+            st.table(avg_tbl)
 
 ############################################################ END Score per Hole
 
