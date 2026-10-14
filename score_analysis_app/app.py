@@ -311,17 +311,14 @@ if uploaded_file is not None:
 
     # This excludes just Par 3 Courses (already dropped in clean_data)
     with tab3:
-        ctl1, ctl2 = st.columns(2)
-        with ctl1:
-            hole_filter = st.radio("Rounds to include:", ["All rounds", "18 holes only"], horizontal=True, key="t3_filter")
-        with ctl2:
-            value_mode = st.radio("Show values as:", ["Raw counts", "Per 18 holes", "% of holes"], horizontal=True, key="t3_mode",
-                                  help="Per 18 holes scales 9-hole rounds up (count x 18 / 9) so they compare fairly with 18-hole rounds.")
+        st.info("**This tab uses 18-hole rounds only.** 9-hole rounds are excluded from every chart and table below.")
 
-        t3_df = df_sorted if hole_filter == "All rounds" else df_sorted.filter(pl.col("18 Holes Played Flg") == 1)
+        value_mode = st.radio("Show values as:", ["Raw counts", "% of holes"], horizontal=True, key="t3_mode")
+
+        t3_df = df_sorted.filter(pl.col("18 Holes Played Flg") == 1)
 
         if t3_df.is_empty():
-            st.warning("No rounds to show for this filter.")
+            st.warning("No 18-hole rounds to show.")
         else:
             # Donut: share of each score type
             scoring_pd = create_score_df(t3_df).to_pandas()
@@ -335,7 +332,7 @@ if uploaded_file is not None:
                     tooltip=[alt.Tooltip("Score Type:N"), alt.Tooltip("Count:Q"), alt.Tooltip("Pct:Q", format=".1%")],
                 )
                 .mark_arc(innerRadius=50)
-                .properties(title=f"Score Type Distribution ({hole_filter})")
+                .properties(title="Score Type Distribution (18-Hole Rounds Only)")
             )
             st.altair_chart(donut, use_container_width=True)
 
@@ -348,7 +345,7 @@ if uploaded_file is not None:
                 domain=SCORE_TYPES,
                 range=["#9467bd", "#2ca02c", "#1f77b4", "#ff7f0e", "#d62728"],
             )
-            y_title = {"Raw counts": "Holes", "Per 18 holes": "Holes per 18", "% of holes": "% of Holes"}[value_mode]
+            y_title = {"Raw counts": "Holes", "% of holes": "% of Holes"}[value_mode]
             stacked = (
                 alt.Chart(events)
                 .mark_bar()
@@ -362,8 +359,6 @@ if uploaded_file is not None:
                 .properties(title="Scoring Composition per Round", height=400)
             )
             st.altair_chart(stacked, use_container_width=True)
-            if value_mode == "Raw counts" and hole_filter == "All rounds":
-                st.caption("Raw counts mix 9- and 18-hole rounds, so 9-hole bars are shorter. Use Per 18 holes to compare fairly.")
 
             st.write("")
             st.write("")
@@ -371,17 +366,17 @@ if uploaded_file is not None:
             # Rolling average of doubles+ per 18 holes (consistency)
             roll_window = st.slider("Rolling window (rounds)", 3, 30, 10, key="t3_window")
             doubles = (
-                scoring_events_by_round(t3_df, "Per 18 holes")
+                scoring_events_by_round(t3_df, "Raw counts")
                 .query("`Score Type` == 'Double Bogey or Worse'")
                 .sort_values("Round Index")
-                .rename(columns={"Value": "Double Bogeys+ per 18"})
+                .rename(columns={"Value": "Double Bogeys+ per Round"})
             )
             window = min(roll_window, len(doubles))
-            doubles["Rolling Avg"] = doubles["Double Bogeys+ per 18"].rolling(window=window, min_periods=window).mean()
+            doubles["Rolling Avg"] = doubles["Double Bogeys+ per Round"].rolling(window=window, min_periods=window).mean()
             base_d = alt.Chart(doubles).encode(x=alt.X("Round Index:Q", title="Round Number (oldest first)"))
             raw_pts = base_d.mark_circle(opacity=0.35, size=40).encode(
-                y=alt.Y("Double Bogeys+ per 18:Q", title="Double Bogeys or Worse per 18 holes"),
-                tooltip=["Round Played", alt.Tooltip("Double Bogeys+ per 18:Q", format=".1f")],
+                y=alt.Y("Double Bogeys+ per Round:Q", title="Double Bogeys or Worse per Round"),
+                tooltip=["Round Played", alt.Tooltip("Double Bogeys+ per Round:Q", format=".1f")],
             )
             roll_line = base_d.mark_line(color="#d62728", strokeWidth=3).encode(
                 y="Rolling Avg:Q",
@@ -395,7 +390,7 @@ if uploaded_file is not None:
 
             # Average per round
             st.write("")
-            st.header("Average Scoring Events per Round:" if value_mode != "Per 18 holes" else "Average Scoring Events per 18 Holes:")
+            st.header("Average Scoring Events per 18-Hole Round:")
             avg_tbl = (
                 events.groupby("Score Type")["Value"].mean().reindex(SCORE_TYPES).round(2)
                 .to_frame(y_title).T
