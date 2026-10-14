@@ -311,14 +311,12 @@ if uploaded_file is not None:
 
     # This excludes just Par 3 Courses (already dropped in clean_data)
     with tab3:
-        ctl1, ctl2, ctl3 = st.columns(3)
+        ctl1, ctl2 = st.columns(2)
         with ctl1:
             hole_filter = st.radio("Rounds to include:", ["All rounds", "18 holes only"], horizontal=True, key="t3_filter")
         with ctl2:
             value_mode = st.radio("Show values as:", ["Raw counts", "Per 18 holes", "% of holes"], horizontal=True, key="t3_mode",
                                   help="Per 18 holes scales 9-hole rounds up (count x 18 / 9) so they compare fairly with 18-hole rounds.")
-        with ctl3:
-            roll_window = st.slider("Rolling window (rounds)", 3, 30, 10, key="t3_window")
 
         t3_df = df_sorted if hole_filter == "All rounds" else df_sorted.filter(pl.col("18 Holes Played Flg") == 1)
 
@@ -371,6 +369,7 @@ if uploaded_file is not None:
             st.write("")
 
             # Rolling average of doubles+ per 18 holes (consistency)
+            roll_window = st.slider("Rolling window (rounds)", 3, 30, 10, key="t3_window")
             doubles = (
                 scoring_events_by_round(t3_df, "Per 18 holes")
                 .query("`Score Type` == 'Double Bogey or Worse'")
