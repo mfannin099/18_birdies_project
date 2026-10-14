@@ -242,6 +242,33 @@ def fit_linear_regression(df):
     return df, model
 
 
+def calculate_handicap_index(df, n_recent=20, n_best=8, min_rounds=8):
+    """Estimate a WHS-style Handicap Index: average of the lowest `n_best`
+    differentials among the `n_recent` most recent 18-hole rounds.
+
+    The export has no Course Rating / Slope, so the differential is
+    approximated as Total Strokes - Course Par (slope 113, PCC 0). The result
+    is therefore an estimate, not an official index.
+
+    Returns (index, counting_rounds, n_rounds_considered). `index` is None
+    when fewer than `min_rounds` 18-hole rounds exist; `counting_rounds` is a
+    Polars DataFrame of the rounds that went into the average.
+    """
+    recent = (
+        df.filter(pl.col("18 Holes Played Flg") == 1)
+        .sort("Round Played", descending=True)
+        .head(n_recent)
+        .with_columns((pl.col("Total Strokes") - pl.col("Course Par")).alias("Differential"))
+    )
+    n_considered = recent.height
+    if n_considered < min_rounds:
+        return None, recent.clear(), n_considered
+
+    counting = recent.sort("Differential").head(n_best)
+    index = round(counting["Differential"].mean(), 1)
+    return index, counting.select(["Round Played", "Course", "Total Strokes", "Course Par", "Differential"]), n_considered
+
+
 def create_score_df(df_sorted):
 
     # Calculating Measures for Calculations

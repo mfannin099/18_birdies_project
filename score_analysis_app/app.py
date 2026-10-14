@@ -6,7 +6,7 @@ import numpy as np
 import scipy.stats as stats
 
 
-from utils import clean_data, plot_time_series, fit_linear_regression, create_score_df, SchemaValidationError
+from utils import clean_data, plot_time_series, fit_linear_regression, create_score_df, calculate_handicap_index, SchemaValidationError
 
 st.set_page_config(
     page_title="Golf Performance Dashboard",
@@ -60,7 +60,7 @@ if uploaded_file is not None:
 
 ############################################################ BEGIN Metrics
 
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
 
     with col1:
         st.metric(
@@ -116,6 +116,23 @@ if uploaded_file is not None:
             label="Rounds Logged (18 Holes)",
             value=len(df.filter(pl.col('18 Holes Played Flg') == 1))
         )
+
+    with col7:
+        handicap_index, handicap_rounds, handicap_n = calculate_handicap_index(df)
+        st.metric(
+            label="Est. Handicap Index (Best 8 of Last 20)",
+            value="N/A" if handicap_index is None else f"{handicap_index:.1f}",
+            help="Average of the 8 lowest (Total Strokes - Course Par) among your last 20 "
+                 "18-hole rounds. Estimate only: assumes slope 113 and no course rating/PCC.",
+        )
+
+    if handicap_index is None:
+        st.caption(f"Handicap estimate needs at least 8 rounds of 18 holes (found {handicap_n}).")
+    else:
+        if handicap_n < 20:
+            st.caption(f"Provisional handicap: only {handicap_n} 18-hole rounds available (20 used when possible).")
+        with st.expander("Rounds counting toward handicap"):
+            st.dataframe(handicap_rounds.to_pandas(), use_container_width=True)
 
 ############################################################ END Metrics
 
