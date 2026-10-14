@@ -65,7 +65,8 @@ if uploaded_file is not None:
     with col1:
         st.metric(
             label="Average Score (18 Holes)",
-            value=f"{df.filter(pl.col('18 Holes Played Flg') == 1).select(pl.mean('Total Strokes')).item():.1f}"
+            value=f"{df.filter(pl.col('18 Holes Played Flg') == 1).select(pl.mean('Total Strokes')).item():.1f}",
+            help="Average total strokes across all 18-hole rounds logged."
         )
 
     n=10
@@ -81,13 +82,15 @@ if uploaded_file is not None:
 
         st.metric(
             label=f"Average Score (18 Holes) - Last {n} Rounds",
-            value=f"{avg_last_n:.1f}"
+            value=f"{avg_last_n:.1f}",
+            help=f"Average total strokes across your {n} most recent 18-hole rounds."
         )
 
     with col3:
         st.metric(
             label = "Average Score (9 Holes)",
-            value=f"{df.filter(pl.col('18 Holes Played Flg') == 0).select(pl.mean('Total Strokes')).item():.1f}"
+            value=f"{df.filter(pl.col('18 Holes Played Flg') == 0).select(pl.mean('Total Strokes')).item():.1f}",
+            help="Average total strokes across all 9-hole rounds logged."
         )
 
     with col4:
@@ -102,19 +105,22 @@ if uploaded_file is not None:
 
         st.metric(
             label=f"Average Score (9 Holes) - Last {n} Rounds",
-            value=f"{avg_last_n:.1f}"
+            value=f"{avg_last_n:.1f}",
+            help=f"Average total strokes across your {n} most recent 9-hole rounds."
         )
 
     with col5:
         st.metric(
             label="Rounds Logged",
-            value=len(df)
+            value=len(df),
+            help="Total rounds in your export (9 and 18 holes; Par 3 courses excluded)."
         )
     
     with col6:
         st.metric(
             label="Rounds Logged (18 Holes)",
-            value=len(df.filter(pl.col('18 Holes Played Flg') == 1))
+            value=len(df.filter(pl.col('18 Holes Played Flg') == 1)),
+            help="Number of rounds counted as 18 holes."
         )
 
     with col7:
@@ -172,7 +178,8 @@ if uploaded_file is not None:
         col1, col2, col3 = st.columns(3)
         with col1:
             ci_low, ci_high = stats.t.interval(0.95, df=n-1, loc=mean_score, scale=std_score/np.sqrt(n))
-            st.metric("95% Confidence Interval for Average Score", f"{ci_low:.1f} – {ci_high:.1f}")
+            st.metric("95% Confidence Interval for Average Score", f"{ci_low:.1f} – {ci_high:.1f}",
+                      help="Range likely to contain your true average 18-hole score, based on your logged rounds (t-distribution).")
 
         with col2:
             st.write("")
@@ -186,7 +193,8 @@ if uploaded_file is not None:
             intercept = model.params[0]
             slope = model.params[1]
             equation = f"y = {intercept:.1f} + {slope:.1f}x"
-            st.metric("Equation of Linear Regression Line:", equation )
+            st.metric("Equation of Linear Regression Line:", equation,
+                      help="Trend line of 18-hole score vs. round number: y is predicted score, x is round index. A negative slope means your scores are improving.")
 
 
 
