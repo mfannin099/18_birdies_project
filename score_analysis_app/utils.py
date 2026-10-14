@@ -269,6 +269,77 @@ def calculate_handicap_index(df, n_recent=20, n_best=8, min_rounds=8):
     return index, counting.select(["Round Played", "Course", "Total Strokes", "Course Par", "Differential"]), n_considered
 
 
+def monthly_scoring_summary(df, holes_played_flg=1):
+    """Average score per calendar month (Jan-Dec, all years pooled) and per
+    year-month. Expects `df` to have a Datetime `Round Played` plus the
+    `Month`/`Year` columns app.py adds. Returns (by_calendar_month, by_year_month).
+    """
+    rounds = df.filter(pl.col("18 Holes Played Flg") == holes_played_flg)
+    month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+    by_calendar_month = (
+        rounds.group_by("Month")
+        .agg(
+            pl.col("Total Strokes").mean().round(1).alias("Average Score"),
+            pl.len().alias("Rounds"),
+        )
+        .sort("Month")
+        .with_columns(pl.col("Month").map_elements(lambda m: month_names[m - 1], return_dtype=pl.String).alias("Month Name"))
+    )
+
+    by_year_month = (
+        rounds.with_columns(pl.col("Round Played").dt.strftime("%Y-%m").alias("Year-Month"))
+        .group_by("Year-Month")
+        .agg(
+            pl.col("Total Strokes").mean().round(1).alias("Average Score"),
+            pl.len().alias("Rounds"),
+        )
+        .sort("Year-Month")
+    )
+    return by_calendar_month, by_year_month
+
+
+def personal_bests(df, streak_len=3):
+    """Best 18-hole round, best 9-hole round, best consecutive `streak_len`-round
+    stretch of 18-hole rounds (lowest average), and most birdies in a round.
+    Each entry is a dict, or None when there isn't enough data.
+    """
+    def best_round(flg):
+        rounds = df.filter(pl.col("18 Holes Played Flg") == flg)
+        if rounds.is_empty():
+            return None
+        row = rounds.sort(["Total Strokes", "Round Played"]).row(0, named=True)
+        return {"strokes": row["Total Strokes"], "date": str(row["Round Played"])[:10], "course": row["Course"]}
+
+    full = df.filter(pl.col("18 Holes Played Flg") == 1).sort("Round Played")
+    stretch = None
+    if full.height >= streak_len:
+        rolled = full.with_columns(
+            pl.col("Total Strokes").rolling_mean(window_size=streak_len).alias("_avg")
+        )
+        end = rolled["_avg"].arg_min()
+        window = full.slice(end - streak_len + 1, streak_len)
+        stretch = {
+            "avg": round(rolled["_avg"][end], 1),
+            "start": str(window["Round Played"][0])[:10],
+            "end": str(window["Round Played"][-1])[:10],
+            "scores": window["Total Strokes"].to_list(),
+        }
+
+    most_birdies = None
+    if not df.is_empty():
+        row = df.sort(["Birdies", "Round Played"], descending=[True, False]).row(0, named=True)
+        most_birdies = {"birdies": row["Birdies"], "date": str(row["Round Played"])[:10], "course": row["Course"]}
+
+    return {
+        "best_18": best_round(1),
+        "best_9": best_round(0),
+        "best_stretch": stretch,
+        "stretch_len": streak_len,
+        "most_birdies": most_birdies,
+    }
+
+
 def create_score_df(df_sorted):
 
     # Calculating Measures for Calculations

@@ -6,7 +6,7 @@ import numpy as np
 import scipy.stats as stats
 
 
-from utils import clean_data, plot_time_series, fit_linear_regression, create_score_df, calculate_handicap_index, SchemaValidationError
+from utils import clean_data, plot_time_series, fit_linear_regression, create_score_df, calculate_handicap_index, monthly_scoring_summary, personal_bests, SchemaValidationError
 
 st.set_page_config(
     page_title="Golf Performance Dashboard",
@@ -146,7 +146,7 @@ if uploaded_file is not None:
     st.write("")
     st.markdown("---")  # simple horizontal line
 
-    tab1,tab2, tab3 = st.tabs(['Score Over Time', 'Score Distubution', "Score Per Hole"])
+    tab1,tab2, tab3, tab4 = st.tabs(['Score Over Time', 'Score Distubution', "Score Per Hole", "Seasonality & Records"])
 
 ############################################################ BEGIN Score over time
 
@@ -376,6 +376,73 @@ if uploaded_file is not None:
 
 
 ############################################################ END Score per Hole
+
+############################################################ BEGIN Seasonality & Records
+
+    with tab4:
+        st.header("Personal Bests")
+        pb = personal_bests(df)
+        pb_cols = st.columns(4)
+
+        with pb_cols[0]:
+            b = pb["best_18"]
+            st.metric("Best 18-Hole Round", "N/A" if b is None else b["strokes"],
+                      help="Lowest total strokes in a single 18-hole round.")
+            if b: st.caption(f"{b['date']} at {b['course']}")
+        with pb_cols[1]:
+            b = pb["best_9"]
+            st.metric("Best 9-Hole Round", "N/A" if b is None else b["strokes"],
+                      help="Lowest total strokes in a single 9-hole round.")
+            if b: st.caption(f"{b['date']} at {b['course']}")
+        with pb_cols[2]:
+            b = pb["best_stretch"]
+            st.metric(f"Best {pb['stretch_len']}-Round Stretch", "N/A" if b is None else f"{b['avg']:.1f}",
+                      help=f"Lowest average over {pb['stretch_len']} consecutive 18-hole rounds.")
+            if b: st.caption(f"{b['start']} to {b['end']}: {', '.join(map(str, b['scores']))}")
+        with pb_cols[3]:
+            b = pb["most_birdies"]
+            st.metric("Most Birdies in a Round", "N/A" if b is None else b["birdies"],
+                      help="Most birdies in a single round (9 or 18 holes).")
+            if b: st.caption(f"{b['date']} at {b['course']}")
+
+        st.write("")
+        st.markdown("---")
+        st.header("Seasonality")
+
+        season_flg = st.radio("Rounds to include:", [18, 9], horizontal=True, key="season_holes",
+                              format_func=lambda x: f"{x} holes")
+        by_month, by_year_month = monthly_scoring_summary(df, 1 if season_flg == 18 else 0)
+
+        if by_month.is_empty():
+            st.warning(f"No {season_flg}-hole rounds to show.")
+        else:
+            month_order = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+            season_chart = (
+                alt.Chart(by_month.to_pandas())
+                .mark_bar()
+                .encode(
+                    x=alt.X("Month Name:N", sort=month_order, title="Month (all years)"),
+                    y=alt.Y("Average Score:Q", scale=alt.Scale(zero=False)),
+                    tooltip=["Month Name", "Average Score", "Rounds"],
+                )
+                .properties(title=f"Average {season_flg}-Hole Score by Calendar Month", height=350)
+            )
+            st.altair_chart(season_chart, use_container_width=True)
+            st.caption("Months with only a few rounds are noisy; check Rounds in the tooltip.")
+
+            ym_chart = (
+                alt.Chart(by_year_month.to_pandas())
+                .mark_line(point=True)
+                .encode(
+                    x=alt.X("Year-Month:O", title="Month", axis=alt.Axis(labelAngle=-45)),
+                    y=alt.Y("Average Score:Q", scale=alt.Scale(zero=False)),
+                    tooltip=["Year-Month", "Average Score", "Rounds"],
+                )
+                .properties(title=f"Average {season_flg}-Hole Score by Month Over Time", height=350)
+            )
+            st.altair_chart(ym_chart, use_container_width=True)
+
+############################################################ END Seasonality & Records
 
 
 
